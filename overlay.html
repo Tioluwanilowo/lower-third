@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>Now Ministering Overlay</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: transparent;
+        overflow: hidden;
+        font-family: Arial, sans-serif;
+      }
+
+      /* full‐height container matches the photo height */
+      #overlay {
+        position: absolute;
+        left: 0;
+        bottom: 0; /* visible */
+        /* bottom: -200px; hidden offscreen */
+        width: 100%;
+        height: 300px; /* same as photo */
+        transition: bottom 1s ease;
+      }
+
+      /* BLUE BAR: extends underneath the red bar */
+      .blue-bar {
+        position: absolute;
+        left: 0;
+        bottom: 0; /* flush with bottom */
+        width: 100%;
+        height: 90px; /* blue height(60) + red height(50) */
+        background: #00bcd4;
+        z-index: 1;
+      }
+
+      /* PHOTO: sits above the blue bar */
+      #photo {
+        position: absolute;
+        left: 0;
+        bottom: 0;
+        width: 240px;
+        height: 300px;
+        object-fit: fill;
+        object-position: bottom;
+        z-index: 2;
+      }
+
+      /* RED BAR: sits above the photo */
+      .red-bar {
+        position: absolute;
+        left: 0;
+        bottom: 0;
+        width: 100%;
+        height: 40px; /* red height */
+        background: #f44336;
+        z-index: 3;
+        transform: rotate(360deg);
+
+        clip-path: polygon(100% 0, 100% 0, 100% 100%, 0 100%, 0 75%);
+      }
+
+      /* TEXT: sits above everything at blue’s top edge of red */
+      .text-line {
+        position: absolute;
+        left: 0;
+        bottom: 25px; /* start where red ends */
+        width: 100%;
+        height: 60px; /* blue’s visible portion */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 50px;
+        font-weight: bold;
+        color: #000;
+        z-index: 4;
+        white-space: nowrap;
+        rotate: 359deg;
+        /* top: 55%; */
+      }
+    </style>
+  </head>
+  <body>
+    <div id="overlay">
+      <div class="blue-bar"></div>
+      <img id="photo" src="" alt="Minister" />
+      <div class="red-bar"></div>
+      <div class="text-line" id="textLine"></div>
+    </div>
+
+    <script>
+      const overlayEl = document.getElementById("overlay");
+      const photo = document.getElementById("photo");
+      const textLine = document.getElementById("textLine");
+
+      function applyOverlay(cfg) {
+        // set image
+        photo.src = cfg.imageBase64;
+        // set bar colors
+        document.querySelector(".blue-bar").style.backgroundColor =
+          cfg.topColor;
+        document.querySelector(".red-bar").style.backgroundColor =
+          cfg.bottomColor;
+        // set text
+        textLine.style.color = cfg.textColor;
+        textLine.textContent = `${cfg.subText} – ${cfg.name}`;
+        // slide in
+        overlayEl.style.bottom = "0px";
+      }
+
+      function hideOverlay() {
+        overlayEl.style.bottom = "-300px";
+      }
+
+      let prev = null;
+      function watch() {
+        const data = localStorage.getItem("nowMinisteringCurrent");
+        if (data !== prev) {
+          prev = data;
+          data ? applyOverlay(JSON.parse(data)) : hideOverlay();
+        }
+        requestAnimationFrame(watch);
+      }
+      watch();
+    </script>
+  </body>
+</html>

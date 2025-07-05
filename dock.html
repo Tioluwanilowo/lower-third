@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Now Ministering Dock</title>
+
+    <style>
+      body {
+        font-family: sans-serif;
+        padding: 20px;
+        background: #f5f5f5;
+      }
+      .tabs {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+      }
+      .tabs button {
+        padding: 8px 16px;
+        border: none;
+        cursor: pointer;
+        background: #ddd;
+      }
+      .tabs button.active {
+        background: #2196f3;
+        color: white;
+      }
+      .tab-content {
+        display: none;
+      }
+      .tab-content.active {
+        display: block;
+      }
+      .form-group {
+        margin-bottom: 10px;
+      }
+      label {
+        display: block;
+        font-weight: bold;
+        margin-bottom: 5px;
+      }
+      input[type="text"],
+      input[type="file"],
+      input[type="number"] {
+        width: 100%;
+        padding: 5px;
+      }
+      .color-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+      }
+      .color-row .color-group {
+        flex: 1;
+      }
+      .overlay-card {
+        border: 1px solid #ccc;
+        padding: 10px;
+        margin: 10px 0;
+        background: white;
+      }
+      .actions button {
+        margin-right: 10px;
+      }
+      button {
+        margin-top: 10px;
+        padding: 6px 12px;
+        cursor: pointer;
+      }
+      #previewOverlay {
+        margin-top: 20px;
+        padding: 10px;
+        background: white;
+        border: 1px dashed #ccc;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      #previewPhoto {
+        height: 60px;
+        width: 60px;
+        object-fit: cover;
+      }
+      .preview-text {
+        font-weight: bold;
+      }
+
+      .credits {
+        margin-top: 20px;
+        font-size: 14px;
+        text-align: center;
+        color: #aaa;
+      }
+
+      .credits a {
+        color: #4da6ff;
+        text-decoration: none;
+      }
+
+      .credits a:hover {
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>Now Ministering Manager</h2>
+
+    <div class="tabs">
+      <button id="addTabBtn" class="active" onclick="switchTab('add')">
+        ➕ Add Overlay
+      </button>
+      <button id="savedTabBtn" onclick="switchTab('saved')">
+        📁 Saved Overlays
+      </button>
+    </div>
+
+    <!-- Add Overlay Tab -->
+    <div id="addTab" class="tab-content active">
+      <div class="form-group">
+        <label for="subText">Text before name</label>
+        <input
+          oninput="this.value=this.value.toUpperCase()"
+          type="text"
+          id="subText"
+          placeholder="Enter prefix (e.g. NOW MINISTERING)"
+        />
+
+        <label for="ministerName">Minister Name</label>
+        <input
+          oninput="this.value=this.value.toUpperCase()"
+          type="text"
+          id="ministerName"
+          placeholder="Enter Minister Name"
+        />
+      </div>
+
+      <div class="form-group color-row">
+        <div class="color-group">
+          <label for="topColor">Top Strip Color</label>
+          <input type="color" id="topColor" value="#00BCD4" />
+        </div>
+        <div class="color-group">
+          <label for="bottomColor">Bottom Strip Color</label>
+          <input type="color" id="bottomColor" value="#F44336" />
+        </div>
+        <div class="color-group">
+          <label for="textColor">Text Color</label>
+          <input type="color" id="textColor" value="#000000" />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="imageUpload">Upload Image</label>
+        <input type="file" id="imageUpload" accept="image/*" />
+      </div>
+
+      <button onclick="previewOverlay()">Preview</button>
+      <button onclick="saveOverlay()">Save Overlay</button>
+
+      <div id="previewOverlay" style="display: none">
+        <img id="previewPhoto" src="" alt="Preview" />
+        <div>
+          <div class="preview-text" id="previewText">PREFIX – Name</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Saved Overlays Tab -->
+    <div id="savedTab" class="tab-content">
+      <div class="form-group">
+        <label for="hideDelay">Auto-hide overlay after (seconds):</label>
+        <input type="number" id="hideDelay" min="0" value="0" />
+      </div>
+      <div id="overlayList"></div>
+      <button onclick="hideOverlay()">🛑 Hide Overlay</button>
+    </div>
+
+    <div class="credits">
+      Developed by
+      <a href="https://tioluwanilowo.com" target="_blank" rel="noopener"
+        >Tioluwani Lowo</a
+      >
+    </div>
+
+    <script>
+      // Your remove.bg API key (get free at https://www.remove.bg/api)
+      const REMOVE_BG_API_KEY = "cG88rGpwKFWcjwDTNGxcYov5";
+
+      function loadImage(file) {
+        return new Promise((resolve, reject) => {
+          const img = new Image();
+          img.onload = () => resolve(img);
+          img.onerror = reject;
+          img.src = URL.createObjectURL(file);
+        });
+      }
+
+      function loadImageFromBase64(dataUrl) {
+        return new Promise((resolve, reject) => {
+          const img = new Image();
+          img.crossOrigin = "anonymous";
+          img.onload = () => resolve(img);
+          img.onerror = reject;
+          img.src = dataUrl;
+        });
+      }
+
+      async function removeBackgroundOnly(blob) {
+        const apiKey = REMOVE_BG_API_KEY; // Replace with your actual key
+
+        const formData = new FormData();
+        formData.append("image_file", blob);
+        formData.append("size", "auto");
+        formData.append("format", "png");
+
+        const res = await fetch("https://api.remove.bg/v1.0/removebg", {
+          method: "POST",
+          headers: {
+            "X-Api-Key": apiKey,
+          },
+          body: formData,
+        });
+
+        if (!res.ok) {
+          const error = await res.text();
+          throw new Error(`Remove.bg error: ${error}`);
+        }
+
+        const arrayBuffer = await res.arrayBuffer();
+        const base64 = btoa(
+          new Uint8Array(arrayBuffer).reduce(
+            (data, byte) => data + String.fromCharCode(byte),
+            ""
+          )
+        );
+        return `data:image/png;base64,${base64}`;
+      }
+
+      function switchTab(tab) {
+        document
+          .querySelectorAll(".tab-content")
+          .forEach((tc) => tc.classList.remove("active"));
+        document
+          .querySelectorAll(".tabs button")
+          .forEach((b) => b.classList.remove("active"));
+        document.getElementById(tab + "Tab").classList.add("active");
+        document.getElementById(tab + "TabBtn").classList.add("active");
+        if (tab === "saved") renderList();
+      }
+
+      async function previewOverlay() {
+        const subText = document.getElementById("subText").value.trim();
+        const name = document.getElementById("ministerName").value.trim();
+        const file = document.getElementById("imageUpload").files[0];
+
+        if (!subText || !name || !file) {
+          return alert("Please fill prefix, name, and upload an image.");
+        }
+
+        try {
+          const img = await loadImage(file);
+          if (img.width < 240 || img.height < 300) {
+            return alert("Image must be at least 240×300 pixels.");
+          }
+
+          const blob = await (await fetch(img.src)).blob();
+          const fg = await removeBackgroundOnly(blob); // 👈 No cropping
+
+          document.getElementById("previewPhoto").src = fg;
+          const p = document.getElementById("previewText");
+          p.textContent = `${subText} – ${name}`;
+          p.style.color = document.getElementById("textColor").value;
+          document.getElementById("previewOverlay").style.display = "flex";
+        } catch (e) {
+          alert("Background removal failed: " + e.message);
+        }
+      }
+
+      async function saveOverlay() {
+        const subText = document.getElementById("subText").value.trim();
+        const name = document.getElementById("ministerName").value.trim();
+        const file = document.getElementById("imageUpload").files[0];
+
+        if (!subText || !name || !file) {
+          return alert("Please fill prefix, name, and upload an image.");
+        }
+
+        try {
+          const img = await loadImage(file);
+
+          // ✅ Check minimum height
+          if (img.width < 240 || img.height < 300) {
+            return alert("Image must be at least 240×300 pixels.");
+          }
+
+          const blob = await (await fetch(img.src)).blob();
+          const fg = await removeBackgroundOnly(blob);
+
+          const overlay = {
+            subText,
+            name,
+            topColor: document.getElementById("topColor").value,
+            bottomColor: document.getElementById("bottomColor").value,
+            textColor: document.getElementById("textColor").value,
+            imageBase64: fg,
+          };
+
+          let list = JSON.parse(
+            localStorage.getItem("nowMinisteringList") || "[]"
+          );
+          list.push(overlay);
+          localStorage.setItem("nowMinisteringList", JSON.stringify(list));
+
+          alert("Overlay saved!");
+          document.getElementById("subText").value = "";
+          document.getElementById("ministerName").value = "";
+          document.getElementById("imageUpload").value = "";
+          document.getElementById("previewOverlay").style.display = "none";
+        } catch (e) {
+          alert("Background removal failed: " + e.message);
+        }
+      }
+
+      function renderList() {
+        const list = JSON.parse(
+          localStorage.getItem("nowMinisteringList") || "[]"
+        );
+        const container = document.getElementById("overlayList");
+        container.innerHTML = list.length
+          ? list
+              .map(
+                (o, i) => `
+            <div class="overlay-card">
+              <strong>${o.subText} – ${o.name}</strong><br/>
+              <div class="actions">
+                <button onclick="showOverlay(${i})">Show</button>
+                <button onclick="deleteOverlay(${i})">Delete</button>
+              </div>
+            </div>`
+              )
+              .join("")
+          : "<p>No saved overlays yet.</p>";
+      }
+
+      function showOverlay(i) {
+        const list = JSON.parse(
+          localStorage.getItem("nowMinisteringList") || "[]"
+        );
+        localStorage.setItem("nowMinisteringCurrent", JSON.stringify(list[i]));
+        const d = parseInt(document.getElementById("hideDelay").value, 10);
+        if (d > 0) setTimeout(hideOverlay, d * 1000);
+      }
+
+      function deleteOverlay(i) {
+        let list = JSON.parse(
+          localStorage.getItem("nowMinisteringList") || "[]"
+        );
+        list.splice(i, 1);
+        localStorage.setItem("nowMinisteringList", JSON.stringify(list));
+        renderList();
+      }
+
+      function hideOverlay() {
+        localStorage.removeItem("nowMinisteringCurrent");
+      }
+
+      // init
+      renderList();
+
+      // Utility to load image from file as <img> element
+      function loadImage(file) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const img = new Image();
+            img.onload = () => resolve(img);
+            img.onerror = reject;
+            img.src = reader.result;
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+      }
+    </script>
+  </body>
+</html>
