@@ -31,8 +31,8 @@ Features:
 ## Installation
 
 1. Copy **dock.html** and **overlay.html** into your project directory.
-2. Open **dock.html** in your browser to configure and save overlays.
-3. Include **overlay.html** as an `<iframe>` or `<object>` in your host page where you want the banner to appear.
+2. Open or add **dock.html** in your browser or streaming software to configure and save overlays.
+3. Include **overlay.html** as an `<iframe>, <browser (if it a streaming software> or `<object>` in your host page where you want the banner to appear.
 
 ---
 
